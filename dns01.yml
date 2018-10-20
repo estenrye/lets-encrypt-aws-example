@@ -1,0 +1,51 @@
+version: '3.4'
+networks:
+  public:
+    external: true
+services:
+  traefik:
+    image: traefik:1.7.3
+    command:
+      - "--loglevel=DEBUG"
+      - "--defaultentrypoints=https"
+      - "--entrypoints=Name:http Address::80"
+      - "--entrypoints=Name:https Address::443 TLS"
+      - "--entrypoints=Name:traefik Address::8080"
+      - "--docker"
+      - "--docker.exposedbydefault=false"
+      - "--docker.watch"
+      - "--docker.swarmmode=true"
+      - "--acme"
+      - "--acme.email=esten@sharklasers.com"
+      - "--acme.acmelogging"
+      - "--acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--acme.entrypoint=https"
+      - "--acme.httpchallenge"
+      - "--acme.httpchallenge.entrypoint=http"
+      - "--acme.onhostrule"
+      - "--acme.storage=acme.json"
+      - "--api"
+      - "--api.dashboard"
+      - "--debug"
+      - "--accesslog"
+      - "--accesslog.format=json"
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/traefik/acme.json:/acme.json
+    networks:
+      - public
+  whoami:
+    image: jwilder/whoami
+    deploy:
+      labels:
+        - traefik.docker.network=public
+        - traefik.enable=true
+        - traefik.frontend.rule=Host:http-01.d.ryezone.com
+        - traefik.port=8000
+        - traefik.protocol=http
+    networks:
+      - public

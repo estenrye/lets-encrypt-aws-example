@@ -135,6 +135,12 @@
               ]
             },
             "DependsOn":"PublicSubnet"
+          },      
+          "Route53IAMInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+              "Roles": [ "route53:*" ]
+            }
           },
           
           "web1": {
@@ -146,6 +152,9 @@
               "SecurityGroupIds" : [
                 {"Ref":"WebserversSG"}
               ],
+              "IamInstanceProfile":{
+                "Ref":"Route53IAMInstanceProfile"
+              },
               "SubnetId":{"Ref":"PublicSubnet"},
               "Tags": [
                 {"Key":"Name", "Value":"le-docker"},
@@ -182,7 +191,7 @@
                   {"Fn::GetAtt" : ["web1","PublicIp"] }
                 ]
               }
-          }
+          }     
         },
         "Outputs": {
         }
