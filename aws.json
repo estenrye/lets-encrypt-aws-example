@@ -2,7 +2,7 @@
     "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "Lets Encrypt Example",
         "Metadata": {
-    
+
         },
         "Parameters": {
           "InstanceType": {
@@ -32,10 +32,10 @@
           }
         },
         "Mappings": {
-    
+
         },
         "Conditions": {
-    
+
         },
         "Resources": {
           "EngineeringVPC": {
@@ -50,8 +50,8 @@
               ]
             }
           },
-          
-          
+
+
           "InternetGateway": {
             "Type": "AWS::EC2::InternetGateway",
             "Properties": {
@@ -62,7 +62,7 @@
             },
             "DependsOn":"EngineeringVPC"
           },
-    
+
           "AttachGateway": {
             "Type": "AWS::EC2::VPCGatewayAttachment",
             "Properties": {
@@ -70,8 +70,8 @@
               "InternetGatewayId": { "Ref": "InternetGateway" }
             },
             "DependsOn":"InternetGateway"
-          },      
-    
+          },
+
           "PublicSubnet": {
             "Type": "AWS::EC2::Subnet",
             "Properties": {
@@ -85,7 +85,7 @@
             },
             "DependsOn":"AttachGateway"
           },
-          
+
           "PublicSubnetRouteTable": {
             "Type": "AWS::EC2::RouteTable",
             "Properties": {
@@ -96,8 +96,8 @@
               ]
             },
             "DependsOn":"PublicSubnet"
-          },      
-          
+          },
+
           "PublicInternetTraffic": {
             "Type": "AWS::EC2::Route",
             "Properties": {
@@ -106,8 +106,8 @@
               "GatewayId": {"Ref":"InternetGateway"}
             },
             "DependsOn":"PublicSubnetRouteTable"
-          },      
-          
+          },
+
           "PublicSubnetAssociateTable": {
             "Type": "AWS::EC2::SubnetRouteTableAssociation",
             "Properties": {
@@ -115,18 +115,18 @@
               "RouteTableId": {"Ref":"PublicSubnetRouteTable"}
             },
             "DependsOn":"PublicSubnetRouteTable"
-          },      
-            
+          },
+
           "WebserversSG": {
             "Type" : "AWS::EC2::SecurityGroup",
             "Properties" : {
               "GroupName": "WebserversSG",
               "GroupDescription" : "Web Server Security Group",
-              "SecurityGroupIngress" : [ 
+              "SecurityGroupIngress" : [
                 { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0" },
                 { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" },
                 { "IpProtocol" : "tcp", "FromPort" : "8080", "ToPort" : "8080", "CidrIp" : "0.0.0.0/0" },
-                { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" }              
+                { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" }
               ],
               "VpcId": {"Ref":"EngineeringVPC"},
               "Tags": [
@@ -135,14 +135,47 @@
               ]
             },
             "DependsOn":"PublicSubnet"
-          },      
-          "Route53IAMInstanceProfile": {
+          },
+          "TraefikRoute53Role": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version":"2012-10-17",
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Principal":{
+                      "Service":[
+                        "ec2.amazonaws.com"
+                      ]
+                    },
+                    "Action":"sts:AssumeRole"
+                  }
+                ]
+              },
+              "Path": "/",
+              "Policies": [ {
+                "PolicyName": "TraefikRoute53Policy",
+                "PolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [ {
+                    "Effect": "Allow",
+                    "Action": "*",
+                    "Resource": "*"
+                  } ]
+                }
+              } ]
+            }
+         },
+         "TraefikRoute53InstanceProfile": {
             "Type": "AWS::IAM::InstanceProfile",
             "Properties": {
-              "Roles": [ "route53:*" ]
+               "Path": "/",
+               "Roles": [ {
+                  "Ref": "TraefikRoute53Role"
+               } ]
             }
           },
-          
           "web1": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
@@ -153,7 +186,7 @@
                 {"Ref":"WebserversSG"}
               ],
               "IamInstanceProfile":{
-                "Ref":"Route53IAMInstanceProfile"
+                "Ref":"TraefikRoute53InstanceProfile"
               },
               "SubnetId":{"Ref":"PublicSubnet"},
               "Tags": [
@@ -168,7 +201,7 @@
             "Type": "AWS::Route53::RecordSet",
             "Properties": {
                 "HostedZoneName": { "Fn::Join" : [ "", [{"Ref" : "HostedZone"}, "." ]]},
-                "Comment": "Wildcard DNS name for docker.",  
+                "Comment": "Wildcard DNS name for docker.",
                 "Name": {
                     "Fn::Join": [
                         "",
@@ -191,7 +224,7 @@
                   {"Fn::GetAtt" : ["web1","PublicIp"] }
                 ]
               }
-          }     
+          }
         },
         "Outputs": {
         }
