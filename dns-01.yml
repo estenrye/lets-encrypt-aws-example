@@ -7,8 +7,8 @@ services:
     image: traefik:1.7.3
     command:
       - "--loglevel=DEBUG"
-      - "--defaultentrypoints=https"
-      - "--entrypoints=Name:http Address::80"
+      - "--defaultentrypoints=http,https"
+      - "--entrypoints=Name:http Address::80 Redirect.EntryPoint:https"
       - "--entrypoints=Name:https Address::443 TLS"
       - "--entrypoints=Name:traefik Address::8080"
       - "--docker"
@@ -20,8 +20,10 @@ services:
       - "--acme.acmelogging"
       - "--acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--acme.entrypoint=https"
-      - "--acme.httpchallenge"
-      - "--acme.httpchallenge.entrypoint=http"
+      - "--acme.domains=*.d.ryezone.com"
+      - "--acme.dnschallenge"
+      - "--acme.dnschallenge.provider=route53"
+      - "--acme.dnschallenge.delaybeforecheck=10s"
       - "--acme.onhostrule"
       - "--acme.storage=acme.json"
       - "--api"
@@ -44,7 +46,7 @@ services:
       labels:
         - traefik.docker.network=public
         - traefik.enable=true
-        - traefik.frontend.rule=Host:http-01.d.ryezone.com
+        - traefik.frontend.rule=Host:dns-01.d.ryezone.com
         - traefik.port=8000
         - traefik.protocol=http
     networks:
