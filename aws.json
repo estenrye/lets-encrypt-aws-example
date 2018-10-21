@@ -12,18 +12,16 @@
       ],
       "Description":"Select an Instance Type.  Default is t2.micro. Allowable Values are: t2.micro and t2.small"
     },
-    "HostedZone" : {
-      "Type" : "String",
-      "Description" : "The DNS name of an existing Amazon Route 53 hosted zone",
-      "AllowedPattern" : "(?!-)[a-zA-Z0-9-.]{1,63}(?<!-)",
-      "ConstraintDescription" : "must be a valid DNS zone name."
+    "HostedZoneId" : {
+      "Type" : "AWS::Route53::HostedZone::Id",
+      "Description" : "The DNS name of an existing Amazon Route 53 hosted zone"
     },
     "SubDomain":{
       "ConstraintDescription" : "SubDomain is required.",
-      "Description":"Name of the subdomain to be used for the external wildcard DNS: *.ThisValueHere.HostedZone.",
+      "Description":"Name of the subdomain to be used for the external wildcard DNS: *.SubDomain.",
       "Type":"String",
       "MinLength":1,
-      "Default": "d"
+      "Default": "d.ryezone.com"
     },
     "KeyPair":{"Type":"AWS::EC2::KeyPair::KeyName"}
   },
@@ -136,7 +134,8 @@
             "Effect": "Allow",
             "Action": [
               "route53:GetChange",
-              "route53:ListHostedZonesByName"
+              "route53:ListHostedZonesByName",
+              "route53:ListResourceRecordSets"
             ],
             "Resource": [ "*" ]
           },
@@ -150,10 +149,8 @@
                 "Fn::Join": [
                   "",
                   [
-                      "arn:aws:route53:::hostedzone//",
-                      { "Ref": "SubDomain" },
-                      ".",
-                      { "Ref": "HostedZone" },
+                      "arn:aws:route53:::hostedzone/",
+                      { "Ref": "HostedZoneId" },
                       "."
                   ]
                 ]
@@ -217,7 +214,7 @@
       "DependsOn":"web1",
       "Type": "AWS::Route53::RecordSet",
       "Properties": {
-        "HostedZoneName": { "Fn::Join" : [ "", [{"Ref" : "HostedZone"}, "." ]]},
+        "HostedZoneId": { "Ref": "HostedZoneId" },
         "Comment": "Wildcard DNS name for docker.",
         "Name": {
           "Fn::Join": [
@@ -225,8 +222,6 @@
             [
                 "*.",
                 { "Ref": "SubDomain" },
-                ".",
-                { "Ref": "HostedZone" },
                 "."
             ]
           ]
